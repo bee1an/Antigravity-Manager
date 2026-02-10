@@ -37,7 +37,7 @@ pub fn determine_retry_strategy(
         }
 
         // 429 限流错误
-        429 => {
+        429 | 404 => {
             // 优先使用服务端返回的 Retry-After
             if let Some(delay_ms) = crate::proxy::upstream::retry::parse_retry_delay(error_text) {
                 let actual_delay = delay_ms.saturating_add(200).min(30_000); // 上限上调至 30s
@@ -64,7 +64,7 @@ pub fn determine_retry_strategy(
         }
 
         // 401/403 认证/权限错误：切换账号前给予极短缓冲
-        401 | 403 | 404  => RetryStrategy::FixedDelay(Duration::from_millis(200)),
+        401 | 403   => RetryStrategy::FixedDelay(Duration::from_millis(200)),
 
         // 其他错误：不重试
         _ => RetryStrategy::NoRetry,
@@ -133,7 +133,7 @@ pub async fn apply_retry_strategy(
 pub fn should_rotate_account(status_code: u16) -> bool {
     match status_code {
         // 这些错误是账号级别或特定节点配额的，需要轮换
-        429 | 401 | 403 | 500 => true,
+        429 | 401 | 403 | 404 | 500 => true,
         // 这些错误通常是协议或服务端全局性、甚至参数错误的，轮换账号通常无意义
         400 | 503 | 529 => false,
         _ => false,
