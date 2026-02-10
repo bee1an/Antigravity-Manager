@@ -64,7 +64,7 @@ pub fn determine_retry_strategy(
         }
 
         // 401/403 认证/权限错误：切换账号前给予极短缓冲
-        401 | 403 => RetryStrategy::FixedDelay(Duration::from_millis(200)),
+        401 | 403 | 404  => RetryStrategy::FixedDelay(Duration::from_millis(200)),
 
         // 其他错误：不重试
         _ => RetryStrategy::NoRetry,
